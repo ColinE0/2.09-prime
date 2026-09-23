@@ -1,4 +1,5 @@
 import cv2
+from libcamera import Transform
 from picamera2 import Picamera2
 
 from stop_sign_detector import detect_stop_sign
@@ -9,7 +10,7 @@ picam2 = None
 
 
 def setup_camera():
-    """Start the Pi camera once."""
+    """Start the Pi camera once with full 180-degree rotation (upside down mount)."""
     global picam2
 
     if picam2 is not None:
@@ -25,7 +26,9 @@ def setup_camera():
             # Picamera2 RGB888 gives an array OpenCV can use directly as BGR.
             # Do NOT convert RGB -> BGR after capture_array().
             "format": "RGB888"
-        }
+        },
+        # Full 180-degree rotation (vflip + hflip) for upside-down mounted cameras
+        transform=Transform(vflip=1, hflip=1)
     )
 
     picam2.configure(camera_config)
@@ -98,15 +101,9 @@ def get_horizontal_position(center_x, frame_width):
     return "CENTER"
 
 
-
-#-----------------------------------------------------------
-#-----------------------------------------------------------
-#-----------------------------------------------------------
+# -----------------------------------------------------------
 # WHAT NAVIGATION NEEDS TO KNOW FROM VISION
-#-----------------------------------------------------------
-#-----------------------------------------------------------
-#-----------------------------------------------------------
-
+# -----------------------------------------------------------
 
 
 def get_vision_data(frame):
@@ -278,8 +275,7 @@ def main():
 
     setup_camera()
 
-    print("Camera started. Changes Made")
-
+    print("Camera started with 180-degree rotation (vflip + hflip). Running vision pipeline...")
 
     try:
 
@@ -304,4 +300,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
