@@ -74,9 +74,12 @@ YELLOW_WHITE_MAX_SATURATION = 90
 # Green-Light Thresholds
 # ============================================================
 
-GREEN_MIN_MEAN_VALUE = 170
-GREEN_MIN_PEAK_VALUE = 215
-GREEN_MIN_BRIGHT_RATIO = 0.30
+GREEN_CANDIDATE_MIN_SATURATION = 80
+GREEN_CANDIDATE_MIN_VALUE = 180
+
+GREEN_MIN_MEAN_VALUE = 180
+GREEN_MIN_PEAK_VALUE = 220
+GREEN_MIN_BRIGHT_RATIO = 0.45
 GREEN_BRIGHT_PIXEL_VALUE = 210
 
 
@@ -172,17 +175,6 @@ def get_color_masks(hsv):
     return red, yellow, green
 
 
-def get_single_color_mask(hsv, color):
-    red_mask, yellow_mask, green_mask = get_color_masks(hsv)
-    if color == "RED":
-        return red_mask
-    if color == "YELLOW":
-        return yellow_mask
-    if color == "GREEN":
-        return green_mask
-    return np.zeros(hsv.shape[:2], dtype=np.uint8)
-
-
 # ============================================================
 # Candidate Detection
 # ============================================================
@@ -227,7 +219,7 @@ def find_bright_candidates(frame):
     # ---------------- GREEN CANDIDATES ----------------
     green_candidate = cv2.inRange(
         hsv,
-        np.array([38, max(60, MIN_SATURATION), max(85, MIN_VALUE)]),
+        np.array([38, GREEN_CANDIDATE_MIN_SATURATION, GREEN_CANDIDATE_MIN_VALUE]),
         np.array([90, 255, 255])
     )
 
@@ -341,15 +333,17 @@ def validate_light_color(hsv, color_mask, color):
 # Precise Bulb Bounding Box
 # ============================================================
 
-def get_precise_bulb_box(frame, original_box, color):
+def get_precise_bulb_box(hsv, original_box, color, winner_mask):
+    """
+    Refine the bulb box using the HSV ROI and winning mask that were
+    already calculated in analyze_candidate_roi().
+
+    This avoids converting the same ROI to HSV again and avoids
+    regenerating RED/YELLOW/GREEN masks a second time.
+    """
     x, y, box_width, box_height = original_box
-    roi = frame[y:y + box_height, x:x + box_width]
 
-    if roi is None or roi.size == 0:
-        return original_box
-
-    hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-    final_mask = get_single_color_mask(hsv, color)
+    final_mask = winner_mask.copy()
 
     if color == "YELLOW":
         final_mask = cv2.dilate(final_mask, YELLOW_DILATE_KERNEL, iterations=1)
@@ -358,12 +352,18 @@ def get_precise_bulb_box(frame, original_box, color):
     else:
         final_mask = clean_mask(final_mask)
 
-    contours, _ = cv2.findContours(final_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(
+        final_mask,
+        cv2.RETR_EXTERNAL,
+        cv2.CHAIN_APPROX_SIMPLE
+    )
+
     if not contours:
         return original_box
 
     best_contour = None
     best_score = 0.0
+    value_channel = hsv[:, :, 2]
 
     for contour in contours:
         area = cv2.contourArea(contour)
@@ -373,7 +373,7 @@ def get_precise_bulb_box(frame, original_box, color):
         contour_mask = np.zeros(final_mask.shape, dtype=np.uint8)
         cv2.drawContours(contour_mask, [contour], -1, 255, cv2.FILLED)
 
-        values_v = hsv[:, :, 2][contour_mask > 0]
+        values_v = value_channel[contour_mask > 0]
         if values_v.size == 0:
             continue
 
@@ -480,7 +480,7 @@ def analyze_candidate_roi(frame, box):
 
     glow_score = winner_power
 
-    precise_box = get_precise_bulb_box(frame, box, winner_color)
+    precise_box = get_precise_bulb_box(hsv, box, winner_color, winner_mask)
     px, py, pw, ph = precise_box
 
     parent_area = box_width * box_height
@@ -547,3 +547,4 @@ def detect_traffic_light(frame):
     last_analysis_time = current_time
 
     return best_light
+
