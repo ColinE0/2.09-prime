@@ -15,7 +15,7 @@ BOTTOM_CUTOFF = 0.5
 # General Candidate Requirements
 # ============================================================
 
-MIN_SATURATION = 100
+MIN_SATURATION = 50
 MIN_VALUE = 150
 
 MIN_AREA_RATIO = 0.00010   # Rejects tiny stray speckles
@@ -50,7 +50,7 @@ RED_CANDIDATE_MIN_VALUE = 180
 
 RED_MIN_MEAN_VALUE = 180
 RED_MIN_PEAK_VALUE = 220
-RED_MIN_BRIGHT_RATIO = 0.35
+RED_MIN_BRIGHT_RATIO = 0.45
 RED_BRIGHT_PIXEL_VALUE = 210
 
 
@@ -63,7 +63,7 @@ YELLOW_CANDIDATE_MIN_VALUE = 200
 
 YELLOW_MIN_MEAN_VALUE = 200
 YELLOW_MIN_PEAK_VALUE = 235
-YELLOW_MIN_BRIGHT_RATIO = 0.35
+YELLOW_MIN_BRIGHT_RATIO = 0.45
 YELLOW_BRIGHT_PIXEL_VALUE = 220
 
 YELLOW_WHITE_MIN_VALUE = 240
@@ -99,7 +99,7 @@ YELLOW_BOX_PADDING = 0.12
 # ============================================================
 
 RED1_LOWER = np.array([0, 50, 120])
-RED1_UPPER = np.array([15, 255, 255])
+RED1_UPPER = np.array([12, 255, 255])
 
 RED2_LOWER = np.array([155, 50, 120])
 RED2_UPPER = np.array([180, 255, 255])
@@ -320,18 +320,21 @@ def validate_light_color(hsv, color_mask, color):
     mean_value = float(np.mean(values))
     peak_value = float(np.percentile(values, 90))
     bright_ratio = float(np.mean(values >= bright_pixel_value))
+    mean_sat = float(np.mean(sats)) if sats.size > 0 else 0.0
+
 
     # Reject unlit reflected glass: require high saturation ONLY if light isn't blown out
     if peak_value < 240 and sats.size > 0:
-        mean_sat = float(np.mean(sats))
         if mean_sat < 80:
             return False
 
-    return (
+    passed = (
         mean_value >= min_mean
         and peak_value >= min_peak
         and bright_ratio >= min_bright_ratio
     )
+
+    return passed
 
 
 # ============================================================
@@ -423,6 +426,7 @@ def analyze_candidate_roi(frame, box):
         "GREEN": green_mask
     }
 
+
     # Calculate both pixel count AND brightness power for each color
     color_scores = {}
     for color, mask in masks.items():
@@ -430,7 +434,6 @@ def analyze_candidate_roi(frame, box):
         if count > 0:
             vals = hsv[:, :, 2][mask > 0]
             avg_v = float(np.mean(vals))
-            # Weight color presence by intensity power so active bulbs beat unlit reflected bulbs
             power_score = count * (avg_v / 255.0) ** 2
         else:
             power_score = 0.0
@@ -487,6 +490,7 @@ def analyze_candidate_roi(frame, box):
         return None
 
     parent_to_core_ratio = parent_area / float(core_area)
+
     if parent_to_core_ratio > MAX_PARENT_TO_CORE_RATIO:
         return None
 
@@ -522,6 +526,7 @@ def detect_traffic_light(frame):
     candidates = find_bright_candidates(frame)
     valid_lights = []
 
+
     for box in candidates:
         result = analyze_candidate_roi(frame, box)
         if result is not None:
@@ -537,8 +542,8 @@ def detect_traffic_light(frame):
         key=lambda light: light.get("glow_score", light["power"])
     )
 
+
     last_detection = best_light
     last_analysis_time = current_time
 
     return best_light
-
