@@ -1,4 +1,3 @@
-import cv2
 from libcamera import Transform
 from picamera2 import Picamera2
 
@@ -10,7 +9,7 @@ picam2 = None
 
 
 def setup_camera():
-    """Start the Pi camera once with full 180-degree rotation (upside down mount)."""
+    """Start the Pi camera once using the full sensor field of view."""
     global picam2
 
     if picam2 is not None:
@@ -18,17 +17,36 @@ def setup_camera():
 
     picam2 = Picamera2()
 
-    camera_config = picam2.create_preview_configuration(
+    # ---------------------------------------------------------
+    # CAMERA CONFIGURATION
+    # ---------------------------------------------------------
+    # IMX219:
+    #
+    # 640x480 sensor mode uses a cropped section of the sensor
+    # and therefore looks heavily zoomed in.
+    #
+    # 1640x1232 uses the FULL 3280x2464 sensor field of view.
+    #
+    # We capture from that full-FOV sensor mode but scale the
+    # output down to 640x480 so all existing vision code can
+    # continue using the same coordinates and ROIs.
+    #
+    # hflip + vflip = 180-degree rotation for upside-down camera.
+    # ---------------------------------------------------------
+
+    camera_config = picam2.create_video_configuration(
         main={
             "size": (640, 480),
-
-            # IMPORTANT:
-            # Picamera2 RGB888 gives an array OpenCV can use directly as BGR.
-            # Do NOT convert RGB -> BGR after capture_array().
             "format": "RGB888"
         },
-        # Full 180-degree rotation (vflip + hflip) for upside-down mounted cameras
-        transform=Transform(vflip=1, hflip=1)
+        sensor={
+            "output_size": (1640, 1232),
+            "bit_depth": 10
+        },
+        transform=Transform(
+            hflip=1,
+            vflip=1
+        )
     )
 
     picam2.configure(camera_config)
@@ -84,7 +102,7 @@ def boxes_represent_same_object(box1, box2):
 
 
 def get_horizontal_position(center_x, frame_width):
-    """Convert an X coordinate into LEFT / CENTER / RIGHT."""
+    """Convert X coordinate into LEFT / CENTER / RIGHT."""
 
     if center_x is None:
         return None
@@ -101,18 +119,8 @@ def get_horizontal_position(center_x, frame_width):
     return "CENTER"
 
 
-# -----------------------------------------------------------
-# WHAT NAVIGATION NEEDS TO KNOW FROM VISION
-# -----------------------------------------------------------
-
-
 def get_vision_data(frame):
-    """
-    Main interface between computer vision and navigation.
-
-    Runs the stop-sign and traffic-light detectors and returns
-    the detected object, center coordinates, and position.
-    """
+    """Run all vision detectors."""
 
     _, frame_width = frame.shape[:2]
 
@@ -121,15 +129,6 @@ def get_vision_data(frame):
 
     # ---------------------------------------------------------
     # SAME-OBJECT ARBITRATION
-    # ---------------------------------------------------------
-    # If both detectors are looking at the same physical object:
-    #
-    # STOP SIGN wins over RED_LIGHT.
-    #
-    # This prevents a real stop sign from also being reported
-    # as a red traffic light.
-    #
-    # GREEN and YELLOW are not affected.
     # ---------------------------------------------------------
 
     if stop_sign_data is not None and traffic_light_data is not None:
@@ -219,16 +218,10 @@ def get_vision_data(frame):
 
 
 def read_vision():
-    """
-    Capture one frame and return all vision results.
-
-    Navigation only needs to call this function.
-    """
+    """Capture one frame and return all vision results."""
 
     setup_camera()
 
-    # Capture directly.
-    # No RGB -> BGR conversion.
     frame = picam2.capture_array()
 
     return get_vision_data(frame)
@@ -271,31 +264,22 @@ def print_vision_data(vision_data):
 
 
 def main():
-    """Run the vision system continuously."""
+    """Run vision continuously and print detections."""
 
     setup_camera()
 
-    print("Camera started with 180-degree rotation (vflip + hflip). Running vision pipeline...")
-
     try:
-
         while True:
-
-            # Capture frame.
             frame = picam2.capture_array()
-
-            # Run detectors.
             vision_data = get_vision_data(frame)
-
-            # Print detections.
             print_vision_data(vision_data)
 
-    finally:
+    except KeyboardInterrupt:
+        print("\nStopping...")
 
+    finally:
         if picam2 is not None:
             picam2.stop()
-
-        cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
