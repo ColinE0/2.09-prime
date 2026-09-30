@@ -10,7 +10,7 @@ TOP_CUTOFF = 0.0        # 0.0 = top edge of frame
 BOTTOM_CUTOFF = 0.25    # 0.25 = top 25% of frame
 
 LEFT_CUTOFF = 0.2      # 0.2 = removes leftmost 20%
-RIGHT_CUTOFF = 0.6     # 0.6 = removes rightmost 60% 
+RIGHT_CUTOFF = 0.6     # 0.6 = removes rightmost 40% 
 
 # ============================================================
 # General Candidate Requirements
