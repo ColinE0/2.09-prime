@@ -14,7 +14,7 @@ All existing subsystem code comes from
 | main | ff119bdc7262c2f9893f3c654543f17d1cfcfc0b | Base README and gitignore |
 | kws | ef4b1c628bf772d78da88ce455f0768a6ce79eb2 | main.py, five supporting Python modules, README_Motor_IMU.md |
 | cew | ae32bf9f6ea40d86a1cbfec0a8308c852e965dbc | tof_sensor.py |
-| rr | 31943865d2f9f7e9696ab8360a0f9e2cc6dc10f0 | vision.py, stop_sign_detector.py, traffic_light_detector.py |
+| rr | efff7d82407dd0deca00020d8813a0feb618641e | vision.py, stop_sign_detector.py, traffic_light_detector.py |
 | mm | 2f44535af3955c012a2716bba16165765d00bfc6 | Initial scaffold; no additional subsystem files |
 
 `SOURCES.json` records each source file's branch, commit and original SHA-256.
@@ -24,6 +24,12 @@ Eight supporting Python modules retain their exact source bytes.
 document and the source manifest are newly written integration documentation.
 `tests/` contains the new offline regression checks used to verify the
 integration and GPIO changes.
+
+Pull request #1 merged `rr` at `efff7d8` on September 30, after the first
+publication. It adds two later `traffic_light_detector.py` commits (ROI crop
+and threshold changes); `vision.py` and `stop_sign_detector.py` were already
+identical. The rr row above and `SOURCES.json` now record that commit, and all
+46 offline checks pass after the merge.
 
 ## Connecting code
 

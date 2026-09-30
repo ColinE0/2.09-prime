@@ -64,20 +64,20 @@
     },
     "vision.py": {
       "branch": "rr",
-      "commit": "31943865d2f9f7e9696ab8360a0f9e2cc6dc10f0",
+      "commit": "efff7d82407dd0deca00020d8813a0feb618641e",
       "source_sha256": "a1d8cf175957ccced9bff4c859942393a1ee6b3a4c2aad4a09e2ebf601aedc4c",
       "state": "unchanged"
     },
     "stop_sign_detector.py": {
       "branch": "rr",
-      "commit": "31943865d2f9f7e9696ab8360a0f9e2cc6dc10f0",
+      "commit": "efff7d82407dd0deca00020d8813a0feb618641e",
       "source_sha256": "ce0f223cd268da85797e39732a137c1b125cebc8faa20b87c27fdf290560b6ca",
       "state": "unchanged"
     },
     "traffic_light_detector.py": {
       "branch": "rr",
-      "commit": "31943865d2f9f7e9696ab8360a0f9e2cc6dc10f0",
-      "source_sha256": "fa6fdfb6a39e9f31d2afeca8c9d87964ceee1401b6e6ff89ba9802709a2a2caf",
+      "commit": "efff7d82407dd0deca00020d8813a0feb618641e",
+      "source_sha256": "b94ee0ba803d8dbe2f2ed84eb25e61a19c5db2840cd7d398c673e41e069458c4",
       "state": "unchanged"
     }
   },
