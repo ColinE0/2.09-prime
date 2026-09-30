@@ -2,14 +2,15 @@ import cv2
 import numpy as np
 import time
 
-
 # ============================================================
-# Region of Interest
+# Region of Interest (ROI Bounds as percentages 0.0 to 1.0)
 # ============================================================
 
-TOP_CUTOFF = 0.0
-BOTTOM_CUTOFF = 0.5
+TOP_CUTOFF = 0.0        # 0.0 = top edge of frame
+BOTTOM_CUTOFF = 0.25    # 0.25 = top 25% of frame
 
+LEFT_CUTOFF = 0.2      # 0.2 = removes leftmost 20%
+RIGHT_CUTOFF = 0.6     # 0.6 = removes rightmost 40% 
 
 # ============================================================
 # General Candidate Requirements
@@ -18,7 +19,7 @@ BOTTOM_CUTOFF = 0.5
 MIN_SATURATION = 50
 MIN_VALUE = 150
 
-MIN_AREA_RATIO = 0.00010   # Rejects tiny stray speckles
+MIN_AREA_RATIO = 0.00020   # Rejects tiny stray speckles
 MAX_AREA_RATIO = 0.04      # Discards large reflections/housings
 
 MIN_COLOR_RATIO = 0.15     # Requires candidate box to contain genuine color density
@@ -29,8 +30,7 @@ MAX_PARENT_TO_CORE_RATIO = 10.0  # Prevents housing from swamping the bulb
 HOLD_TIME = 0.0
 
 # Minimum compactness (4 * pi * area / perimeter^2) to reject noisy jagged pixels
-MIN_COMPACTNESS = 0.35     # Bulbs are round/square; stray noise is thin/jagged
-
+MIN_COMPACTNESS = 0.35     # Bulbs are round/square; stray noise is thin
 
 # ============================================================
 # Blown-Out Core / Overexposure Handling
@@ -40,7 +40,6 @@ MIN_COMPACTNESS = 0.35     # Bulbs are round/square; stray noise is thin/jagged
 WHITE_CORE_MIN_VALUE = 235
 WHITE_CORE_MAX_SATURATION = 95
 
-
 # ============================================================
 # Red-Light Thresholds
 # ============================================================
@@ -49,10 +48,9 @@ RED_CANDIDATE_MIN_SATURATION = 80
 RED_CANDIDATE_MIN_VALUE = 180
 
 RED_MIN_MEAN_VALUE = 180
-RED_MIN_PEAK_VALUE = 220
-RED_MIN_BRIGHT_RATIO = 0.45
+RED_MIN_PEAK_VALUE = 250
+RED_MIN_BRIGHT_RATIO = 0.4
 RED_BRIGHT_PIXEL_VALUE = 210
-
 
 # ============================================================
 # Yellow-Light Thresholds
@@ -61,14 +59,13 @@ RED_BRIGHT_PIXEL_VALUE = 210
 YELLOW_CANDIDATE_MIN_SATURATION = 100
 YELLOW_CANDIDATE_MIN_VALUE = 200
 
-YELLOW_MIN_MEAN_VALUE = 200
-YELLOW_MIN_PEAK_VALUE = 235
-YELLOW_MIN_BRIGHT_RATIO = 0.45
+YELLOW_MIN_MEAN_VALUE = 210
+YELLOW_MIN_PEAK_VALUE = 250
+YELLOW_MIN_BRIGHT_RATIO = 0.7
 YELLOW_BRIGHT_PIXEL_VALUE = 220
 
 YELLOW_WHITE_MIN_VALUE = 240
 YELLOW_WHITE_MAX_SATURATION = 90
-
 
 # ============================================================
 # Green-Light Thresholds
@@ -78,10 +75,9 @@ GREEN_CANDIDATE_MIN_SATURATION = 80
 GREEN_CANDIDATE_MIN_VALUE = 180
 
 GREEN_MIN_MEAN_VALUE = 180
-GREEN_MIN_PEAK_VALUE = 220
-GREEN_MIN_BRIGHT_RATIO = 0.45
+GREEN_MIN_PEAK_VALUE = 255
+GREEN_MIN_BRIGHT_RATIO = 0.5
 GREEN_BRIGHT_PIXEL_VALUE = 210
-
 
 # ============================================================
 # Final Bulb-Box Requirements
@@ -95,7 +91,6 @@ YELLOW_FINAL_MIN_VALUE = 170
 
 FINAL_BOX_PADDING = 0.10
 YELLOW_BOX_PADDING = 0.12
-
 
 # ============================================================
 # HSV Color Ranges (Halo Friendly)
@@ -113,7 +108,6 @@ YELLOW_UPPER = np.array([35, 255, 255])
 GREEN_LOWER = np.array([38, 60, 85])
 GREEN_UPPER = np.array([90, 255, 255])
 
-
 # ============================================================
 # Morphology Kernels
 # ============================================================
@@ -124,14 +118,12 @@ CLOSE_KERNEL = np.ones((5, 5), np.uint8)
 YELLOW_DILATE_KERNEL = np.ones((3, 3), np.uint8)
 HALO_DILATE_KERNEL = np.ones((5, 5), np.uint8)
 
-
 # ============================================================
 # Detection Hold State
 # ============================================================
 
 last_detection = None
 last_analysis_time = 0.0
-
 
 # ============================================================
 # Mask Cleanup
@@ -141,7 +133,6 @@ def clean_mask(mask):
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, OPEN_KERNEL)
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, CLOSE_KERNEL)
     return mask
-
 
 # ============================================================
 # HSV Color Masks (With White-Core Inheritance)
@@ -174,7 +165,6 @@ def get_color_masks(hsv):
 
     return red, yellow, green
 
-
 # ============================================================
 # Candidate Detection
 # ============================================================
@@ -183,10 +173,14 @@ def find_bright_candidates(frame):
     frame_height, frame_width = frame.shape[:2]
     frame_area = frame_width * frame_height
 
+    # Calculate ROI cropping pixels
     y_start = int(frame_height * TOP_CUTOFF)
     y_end = int(frame_height * BOTTOM_CUTOFF)
+    x_start = int(frame_width * LEFT_CUTOFF)
+    x_end = int(frame_width * RIGHT_CUTOFF)
 
-    roi_frame = frame[y_start:y_end, :]
+    # Crop the ROI horizontally and vertically
+    roi_frame = frame[y_start:y_end, x_start:x_end]
 
     blurred = cv2.GaussianBlur(roi_frame, (3, 3), 0)
     hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
@@ -268,14 +262,15 @@ def find_bright_candidates(frame):
             continue
 
         aspect_ratio = float(box_width) / box_height
-        if aspect_ratio < 0.4 or aspect_ratio > 2.5:
+        if aspect_ratio < 0.65 or aspect_ratio > 1.55:
             continue
 
+        # Map ROI coordinates back to original full frame coordinates
+        full_frame_x = x + x_start
         full_frame_y = y + y_start
-        candidates.append((x, full_frame_y, box_width, box_height))
+        candidates.append((full_frame_x, full_frame_y, box_width, box_height))
 
     return candidates
-
 
 # ============================================================
 # Brightness & Light Validation
@@ -314,7 +309,6 @@ def validate_light_color(hsv, color_mask, color):
     bright_ratio = float(np.mean(values >= bright_pixel_value))
     mean_sat = float(np.mean(sats)) if sats.size > 0 else 0.0
 
-
     # Reject unlit reflected glass: require high saturation ONLY if light isn't blown out
     if peak_value < 240 and sats.size > 0:
         if mean_sat < 80:
@@ -328,7 +322,6 @@ def validate_light_color(hsv, color_mask, color):
 
     return passed
 
-
 # ============================================================
 # Precise Bulb Bounding Box
 # ============================================================
@@ -337,9 +330,6 @@ def get_precise_bulb_box(hsv, original_box, color, winner_mask):
     """
     Refine the bulb box using the HSV ROI and winning mask that were
     already calculated in analyze_candidate_roi().
-
-    This avoids converting the same ROI to HSV again and avoids
-    regenerating RED/YELLOW/GREEN masks a second time.
     """
     x, y, box_width, box_height = original_box
 
@@ -405,7 +395,6 @@ def get_precise_bulb_box(hsv, original_box, color, winner_mask):
         new_y2 - new_y1
     )
 
-
 # ============================================================
 # Candidate Analysis
 # ============================================================
@@ -425,7 +414,6 @@ def analyze_candidate_roi(frame, box):
         "YELLOW": yellow_mask,
         "GREEN": green_mask
     }
-
 
     # Calculate both pixel count AND brightness power for each color
     color_scores = {}
@@ -506,7 +494,6 @@ def analyze_candidate_roi(frame, box):
         "glow_score": glow_score
     }
 
-
 # ============================================================
 # Main Traffic-Light Detector
 # ============================================================
@@ -526,7 +513,6 @@ def detect_traffic_light(frame):
     candidates = find_bright_candidates(frame)
     valid_lights = []
 
-
     for box in candidates:
         result = analyze_candidate_roi(frame, box)
         if result is not None:
@@ -542,9 +528,7 @@ def detect_traffic_light(frame):
         key=lambda light: light.get("glow_score", light["power"])
     )
 
-
     last_detection = best_light
     last_analysis_time = current_time
 
     return best_light
-
