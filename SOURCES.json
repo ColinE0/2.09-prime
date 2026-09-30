@@ -1,0 +1,88 @@
+{
+  "repository": "https://github.com/ColinE0/2.09-prime",
+  "base_commit": "ff119bdc7262c2f9893f3c654543f17d1cfcfc0b",
+  "files": {
+    "README.md": {
+      "branch": "main",
+      "commit": "ff119bdc7262c2f9893f3c654543f17d1cfcfc0b",
+      "source_sha256": "99ea9bd9ebe27fecbf6f04a8709b0da5c9cb8bf15148a64e5046ff46fd3dca45",
+      "state": "modified for integration"
+    },
+    ".gitignore": {
+      "branch": "main",
+      "commit": "ff119bdc7262c2f9893f3c654543f17d1cfcfc0b",
+      "source_sha256": "bfbb4c6bccfba0f031dfee36b26c72b1239a1d149f0d8c4ce76c938f5ec10e35",
+      "state": "unchanged"
+    },
+    "main.py": {
+      "branch": "kws",
+      "commit": "ef4b1c628bf772d78da88ce455f0768a6ce79eb2",
+      "source_sha256": "4af165af5540e9dfa4262059f20d1dafffe564eb3541e1e1d4f8d6720dd6d95e",
+      "state": "modified for integration"
+    },
+    "README_Motor_IMU.md": {
+      "branch": "kws",
+      "commit": "ef4b1c628bf772d78da88ce455f0768a6ce79eb2",
+      "source_sha256": "1b910b4712f9b5337937c86a4d1423259d4118291efa9500c6a83f1756f798db",
+      "state": "modified for integration"
+    },
+    "motors_optimized.py": {
+      "branch": "kws",
+      "commit": "ef4b1c628bf772d78da88ce455f0768a6ce79eb2",
+      "source_sha256": "a328045419a30e029d425c83cbfaa82194b65ffc5fff02f2e53da6c60613fc10",
+      "state": "modified for GPIO validation and shutdown"
+    },
+    "motion_profile.py": {
+      "branch": "kws",
+      "commit": "ef4b1c628bf772d78da88ce455f0768a6ce79eb2",
+      "source_sha256": "e85dc7de2fec0f4d24fe26196542d633ca22ff8fd74c9da6b134dbe6b20a13ea",
+      "state": "unchanged"
+    },
+    "single_motor.py": {
+      "branch": "kws",
+      "commit": "ef4b1c628bf772d78da88ce455f0768a6ce79eb2",
+      "source_sha256": "011abd2c76c897bec80a1d4719e858897bd09d792e9b7122993c8f6fafe48f5b",
+      "state": "unchanged"
+    },
+    "imu_support.py": {
+      "branch": "kws",
+      "commit": "ef4b1c628bf772d78da88ce455f0768a6ce79eb2",
+      "source_sha256": "4f4f569e99cf86ff5056844814d6e0cc7fdb6b0e3e91439d18d00e097d4d0279",
+      "state": "unchanged"
+    },
+    "imu_tests.py": {
+      "branch": "kws",
+      "commit": "ef4b1c628bf772d78da88ce455f0768a6ce79eb2",
+      "source_sha256": "64eb4d539fddc79dd7bffa3049f591b28881d2f2a4c49635498ac44d43984e0c",
+      "state": "unchanged"
+    },
+    "tof_sensor.py": {
+      "branch": "cew",
+      "commit": "ae32bf9f6ea40d86a1cbfec0a8308c852e965dbc",
+      "source_sha256": "be44a9173966ddce3a63320d3022a18b73758617dd3044366a4b6f0c64dafde7",
+      "state": "unchanged"
+    },
+    "vision.py": {
+      "branch": "rr",
+      "commit": "31943865d2f9f7e9696ab8360a0f9e2cc6dc10f0",
+      "source_sha256": "a1d8cf175957ccced9bff4c859942393a1ee6b3a4c2aad4a09e2ebf601aedc4c",
+      "state": "unchanged"
+    },
+    "stop_sign_detector.py": {
+      "branch": "rr",
+      "commit": "31943865d2f9f7e9696ab8360a0f9e2cc6dc10f0",
+      "source_sha256": "ce0f223cd268da85797e39732a137c1b125cebc8faa20b87c27fdf290560b6ca",
+      "state": "unchanged"
+    },
+    "traffic_light_detector.py": {
+      "branch": "rr",
+      "commit": "31943865d2f9f7e9696ab8360a0f9e2cc6dc10f0",
+      "source_sha256": "fa6fdfb6a39e9f31d2afeca8c9d87964ceee1401b6e6ff89ba9802709a2a2caf",
+      "state": "unchanged"
+    }
+  },
+  "new_documentation": [
+    "INTEGRATION.md",
+    "SOURCES.json"
+  ]
+}
