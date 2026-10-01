@@ -8,12 +8,12 @@ _One paragraph: what the robot is and what it has to do on course day._
 
 ## Team
 
-| Initials | Name | Branch | Area |
-|---|---|---|---|
-| KWS | Kaleb W. Smith | `kws` | _TBD_ |
-| RR | Ryan Reyes | `rr` | _TBD_ |
-| MM | Marshall Morris | `mm` | _TBD_ |
-| CEW | Colin Ezra W. | `cew` | _TBD_ |
+| Initials | Name | Branch
+|---|---|---|
+| KWS | Kaleb W. Smith | `kws`
+| RR | Ryan Reyes | `rr` |
+| MM | Marshall Morris | `mm` |
+| CEW | Colin Ezra W. | `cew` |
 
 ## Repository layout
 
