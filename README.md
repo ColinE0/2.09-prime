@@ -4,7 +4,7 @@ Team 2.09 senior design repository, Texas State University, Fall 2026.
 
 ## Overview
 
-The AutoBot is a small autonomous car that navigates a street map course
+Autonomous Prime is a small autonomous car that navigates a street map course
 without human control or intervention. It follows a predetermined route
 through a grid of 4-way intersections, staying in the right-hand lane, obeying
 the traffic lights, and avoiding obstacles such as other AutoBots running the
