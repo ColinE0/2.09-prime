@@ -4,6 +4,15 @@ Team 2.09 senior design repository, Texas State University, Fall 2026.
 
 ## Overview
 
+The AutoBot is a small autonomous car that navigates a street map course
+without human control or intervention. It follows a predetermined route
+through a grid of 4-way intersections, staying in the right-hand lane, obeying
+the traffic lights, and avoiding obstacles such as other AutoBots running the
+course at the same time. At D2 Senior Design Day, each AutoBot runs the same
+course three times, and its best single time counts.
+
+## Current state
+
 Integrated test bench combining the motor/IMU code from `kws`, the ToF code
 from `cew`, and the camera code from `rr` under one terminal menu on `main`.
 
