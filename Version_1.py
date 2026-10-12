@@ -71,6 +71,11 @@ LEG_TIMEOUT = 30.0              # s without finding a front line before the run 
 NO_LIGHT_FRAMES = 10            # frames with no light in view before the robot goes
 STOP_SIGN_CONFIRM_TIME = 1.5    # s spent looking for the stop sign at the final line
 MOTOR_TWITCH_CHECK = False      # True: nudge each wheel for 0.15 s during the start-up check
+USE_POWER_GUARD = True          # stop the run on overcurrent or a low battery (INA219, power_guard.py)
+POWER_OVERCURRENT_A = 4.5       # EDIT: stop when the pack current stays at or above this...
+POWER_OVERCURRENT_HOLD = 0.2    #       ...for this many seconds. Starting values until stall current is measured
+POWER_LOW_VOLTAGE_V = 6.4       # EDIT: stop when the pack stays at or below this while driving...
+POWER_LOW_VOLTAGE_HOLD = 2.0    #       ...for this many seconds (rides out the dip when the motors start)
 LOG_FILE = "run_log.txt"
 PROFILES_FILE = "profiles.json"   # named sets of settings; edits are saved into the active profile
 SETTINGS_FILE = "settings.json"   # old single settings file; moved into the profile "default" on first start
@@ -283,6 +288,11 @@ class MotorDriver:
     @property
     def ready(self):
         return bool(self.pwm)
+
+    @property
+    def duties(self):
+        """Same list as duty; power_guard.py reads it under this name."""
+        return self.duty
 
     def initialize(self):
         for pin in all_pins:
@@ -1690,6 +1700,64 @@ def vision_main():
 ####################### TOF SENSOR END #########################
 
 
+####################### POWER GUARD (INA219) ###################################
+# power_guard.py, battery_support.py and imu_support.py sit next to this file. They come from
+# the Motor Test bench; the only change is that mentions of the bench's menu commands and keys
+# were taken out, since this program does not have them. The limits are the POWER_* settings at
+# the top of this file. Navigation only calls check_power() once per control loop. A trip stops
+# the motors (PWM 0, inputs low) before the fault reaches the run.
+power = None                    # the running PowerGuard once start_power() has run
+
+
+def start_power():
+    """Start the INA219 guard and wait for its first reading. Off in Settings > Other > Power guard."""
+    global power
+    if not USE_POWER_GUARD:
+        log("Power guard is off")
+        return
+    log("Checking power guard")
+    import power_guard               # imported here so the program still runs with the guard off
+    try:
+        guard = power_guard.PowerGuard(POWER_OVERCURRENT_A, POWER_OVERCURRENT_HOLD,
+                                       POWER_LOW_VOLTAGE_V, POWER_LOW_VOLTAGE_HOLD, clock=time)
+    except Exception as exc:
+        raise CourseFault(f"Power guard could not start: {exc} "
+                          "(Settings > Other > Power guard: off runs without it)")
+    try:
+        sample = guard.wait_ready()
+    except power_guard.PowerFault as exc:
+        guard.close()
+        cause = exc.__cause__ or "no reading within 1.5 s"
+        raise CourseFault(f"Power guard could not read the INA219: {cause} "
+                          "(Settings > Other > Power guard: off runs without it)")
+    power = guard
+    log(guard.describe())
+    log(f"Battery {sample.input_voltage:.2f} V, {abs(sample.current):.2f} A")
+
+
+def check_power():
+    """Stop the run at once on overcurrent, a low battery or a failed INA219 reading."""
+    if power is None:
+        return
+    try:
+        power.check(motors)
+    except Exception as exc:          # a PowerFault, or the guard itself failing
+        motors.stop(brake=False)      # a trip has already done this; again is harmless
+        raise CourseFault(f"{power.trip_reason or exc} Motors stopped.")
+
+
+def close_power():
+    global power
+    if power is not None:
+        summary = power.summary()
+        if summary:
+            log(summary)
+        power.close()
+    power = None
+
+####################### POWER GUARD END #########################
+
+
 ################# camera ###################################
 class CameraStream(threading.Thread):
     """Reads the camera continuously so latest() is always the newest BGR frame.
@@ -1970,6 +2038,7 @@ def drive_straight(tracker, heading_target, seconds=None, until_line=False, stop
     shown_at = 0.0
     while True:
         check_reset()
+        check_power()
         now = time.monotonic()
         if tracker is not None:
             _, _, yaw, rate = tracker.get()
@@ -2035,6 +2104,7 @@ def turn(tracker, direction, heading_target):
     checkpoint = 0.0
     while True:
         check_reset()
+        check_power()
         now = time.monotonic()
         _, _, yaw, rate = tracker.get()
         progress = sign * (yaw - heading_target)      # degrees turned so far, in the commanded direction
@@ -2058,6 +2128,7 @@ def turn(tracker, direction, heading_target):
     settle = time.monotonic() + 0.25                   # let the robot finish coasting
     while time.monotonic() < settle:
         check_reset()
+        check_power()
         tracker.get()
         time.sleep(LOOP_DT)
     _, _, yaw, _ = tracker.get()
@@ -2082,6 +2153,7 @@ def turn_timed(tracker, direction, heading_target):
     start = previous = time.monotonic()
     while time.monotonic() - start < seconds:
         check_reset()
+        check_power()
         now = time.monotonic()
         if tracker is not None:
             tracker.get()
@@ -2092,6 +2164,7 @@ def turn_timed(tracker, direction, heading_target):
     settle = time.monotonic() + 0.25
     while time.monotonic() < settle:
         check_reset()
+        check_power()
         if tracker is not None:
             tracker.get()
         time.sleep(LOOP_DT)
@@ -2201,6 +2274,7 @@ def check_systems(parts):
     log("Checking motors")
     if not motors.ready:
         raise CourseFault("Motor driver is not initialised")
+    start_power()                         # before the twitch check, the first powered move
     if MOTOR_TWITCH_CHECK:
         motors.twitch()
 
@@ -2235,6 +2309,7 @@ def check_systems(parts):
 
 
 def close_parts(parts):
+    close_power()
     if parts.get("camera") is not None:
         parts["camera"].stop()
     if parts.get("tracker") is not None:
@@ -2367,6 +2442,7 @@ SETTINGS = [
     ("Wheels", "WHEEL_FACTORS_REVERSE", "Wheel scale going backward (FL, FR, BL, BR)", "list_float", 0, 1),
     ("Other", "BRAKE_ON_STOP", "Short-brake when stopping (off = coast)", "bool", None, None),
     ("Other", "MOTOR_TWITCH_CHECK", "Nudge each wheel during the start-up check", "bool", None, None),
+    ("Other", "USE_POWER_GUARD", "Power guard: stop on overcurrent or low battery", "bool", None, None),
     ("Other", "CAMERA_BACKEND", "Camera type", "choice", None, ("auto", "picamera2", "v4l2")),
     ("Other", "CAMERA_INDEX", "USB camera number", "int", 0, 9),
     ("Other", "CAMERA_REQUIRED", "Camera required: stop the run if it will not open", "bool", None, None),
@@ -2738,6 +2814,7 @@ def turn_test():
     parts = {"imu": None, "tracker": None, "camera": None}
     try:
         start_imu(parts)
+        start_power()
         print("Turning in 2 s...")
         time.sleep(2.0)
         turn(parts["tracker"], direction, 0.0)
@@ -2924,6 +3001,7 @@ def straight_test():
     trace = []
     try:
         start_imu(parts)
+        start_power()
         print("Driving in 2 s...")
         time.sleep(2.0)
         try:
