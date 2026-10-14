@@ -4,7 +4,7 @@
 
 v9.5 merges two separate v9.4 releases that both started from `MPU6050_Motor_Test_v9_3.zip`:
 
-- **v9.4a, gyro lane keeping (FG, CG).** Built 2026-09-23 in `claude-home\motor-bench`.
+- **v9.4a, gyro lane keeping (FG, CG).** Built 2026-09-23.
   Changelog: [CHANGES-v9.4.md](CHANGES-v9.4.md).
 - **v9.4b, removable IR wheel calibration (PPROBE, PCAL, SAVE).** Built by Colin and delivered
   as `MPU6050_Motor_Test_v9_4.zip` in OneDrive. Changelog:
@@ -94,8 +94,7 @@ moved unchanged into `execute()` in `app.py` so GO and the menu share it. New mo
 `go_button.py`; 35 tests in `test_go_button.py`; 517 offline tests pass. Not yet run on a
 robot.
 
-Review fixes, same day (a six-agent review: three reviewers, each finding checked by a
-skeptic; 17 confirmed, none of them a way to move early or fail to stop):
+Review fixes, same day (17 confirmed findings, none allowing early movement or failure to stop):
 
 - RESET stops on its second LOW read in a row, like BTN. The 40 ms debounce missed taps
   under about 60 ms. START keeps 40 ms.

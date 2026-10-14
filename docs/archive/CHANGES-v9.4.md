@@ -5,8 +5,7 @@
 Built on `MPU6050_Motor_Test_v9_3.zip` unmodified (the first commit in this
 folder's local git history is that baseline, so `git diff` shows every change).
 Offline tests: 405 pass (v9.3's 365, plus 40 new in `test_v9_4.py`; one
-existing settings test now also lists the new module). A 6-agent review ran
-before release; its fixes are listed at the end. **Not yet run on either
+existing settings test now also lists the new module). Review fixes are listed at the end. **Not yet run on either
 robot.** FA, FC, C and every other existing command steer as in v9.3; two
 stop-safety fixes below apply to all of them.
 
@@ -108,10 +107,10 @@ These are starting values, not tuned on either robot. Tune the heading gains
 with IF first, then use FG. FG and CG also use FA's IR steering settings, the
 manual baselines, and the IMU turn settings; their SET help now says so.
 
-## Review fixes (6-agent review, 2026-09-23)
+## Review fixes (2026-09-23)
 
-Three reviewers (gyro lane code, safety and hardware state, integration) each
-had a verifier try to refute their findings. Eight were confirmed; all are fixed.
+Eight findings covering gyro lane code, safety, hardware state and integration
+were confirmed and fixed.
 
 | Finding | Severity | Fix |
 |---|---|---|

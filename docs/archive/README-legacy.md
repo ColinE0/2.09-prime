@@ -56,8 +56,8 @@ re-zeros the gyro at every stop, and prints a suggested left/right motor balance
 after the run. Both need IC and IV first. FA, FC and C steer as before. For every
 powered test, Ctrl+S, Ctrl+Z and Ctrl+\ now stop the motors like `s`, and a closed
 SSH window or `kill` now runs the same cleanup as Ctrl+C. 405 offline tests pass,
-40 of them new in `test_v9_4.py` against a simulated robot; a 6-agent review's
-8 confirmed findings are fixed. **Not yet run on either robot.**
+40 of them new in `test_v9_4.py` against a simulated robot;
+8 confirmed review findings are fixed. **Not yet run on either robot.**
 
 ## v9.4b: removable IR wheel calibration
 
