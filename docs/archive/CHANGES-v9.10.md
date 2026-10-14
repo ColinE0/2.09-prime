@@ -1,3 +1,5 @@
+> Historical document. For current operation, see the [navigation guide](../../README.md).
+
 # v9.10 changes (2026-10-07)
 
 v9.10 is v9.9 plus the five test copies built and tried on 2026-10-06 (`_hardened`,

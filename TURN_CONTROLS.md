@@ -1,9 +1,9 @@
-# Independent turn controls, 2026-10-06
+# Turn controls
 
 This delivery includes turn-settle v2, all prior stop-sign fixes, and the 0.04%
 traffic-light action default. Imported profiles can override that camera default.
 
-## New settings: SET -> Motor motion
+## Settings: SET -> Motor motion
 
 - Turn acceleration (duty points/s): how quickly power increases during R/L,
   TR/TL, C/CG turns and ITL/ITR. Straight driving and turn deceleration continue

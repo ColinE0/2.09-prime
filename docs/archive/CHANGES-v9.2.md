@@ -1,3 +1,5 @@
+> Historical document. For current operation, see the [navigation guide](../../README.md).
+
 # v9.2: reversal application and INA219 recovery
 
 Built from the supplied `MPU6050_Motor_Test_v9_1.zip`. The supplied ZIP is

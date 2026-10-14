@@ -1,3 +1,5 @@
+> Historical document. For current operation, see the [navigation guide](../../README.md).
+
 # Stop-sign and turn-transition update, 2026-10-06
 
 This copy includes the previous STOP_SIGN_UPDATE.md changes plus one CG turn fix.

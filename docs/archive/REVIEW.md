@@ -1,15 +1,17 @@
+> Historical document. For current operation, see the [navigation guide](../../README.md).
+
 > **v9.4:** gyro lane keeping (FG, CG) is added; see [CHANGES-v9.4.md](CHANGES-v9.4.md).
 > **v9.3:** Ryan's September 23 vision update is included; see
 > [CHANGES-v9.3.md](CHANGES-v9.3.md).
 
 > **Historical review:** the text below describes v8/v9. For current behaviour, use
-> [README.md](README.md) and [CHANGES-v9.2.md](CHANGES-v9.2.md). v9.1 added a
+> [README.md](../../README.md) and [CHANGES-v9.2.md](CHANGES-v9.2.md). v9.1 added a
 > power guard and changed default wiring/ToF policy. v9.2 applies SET edits on
 > return and fixes INA reader ownership, startup handling and diagnostics.
 
 > **v9 current behavior:** this file preserves the historical review of original
 > v8 and reviewed-v8. Its old migration description and single-profile defaults
-> are superseded by the two-robot behavior in [README.md](README.md).
+> are superseded by the two-robot behavior in [README.md](../../README.md).
 
 V9 asks for the 500 RPM bot (`1`, or `--bot 500`) or the 100 RPM bot (`2`, or
 `--bot 100`; these are the earlier 104 RPM rated motors). Separate
@@ -34,7 +36,7 @@ README documents these rules and custom-file binding. No existing flight config
 or Marshall script is remapped by choosing a v9 profile.
 
 Update, 2026-09-23: Colin supplied motor wire colors for both assembled bots.
-They are recorded in [WIRING.md](WIRING.md). Board-channel connections and
+They are recorded in [WIRING.md](../../WIRING.md). Board-channel connections and
 positive/negative lead identities were not supplied, so the channel-map finding
 below remains unresolved.
 

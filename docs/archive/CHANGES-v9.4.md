@@ -1,3 +1,5 @@
+> Historical document. For current operation, see the [navigation guide](../../README.md).
+
 # v9.4 changes (2026-09-23)
 
 Built on `MPU6050_Motor_Test_v9_3.zip` unmodified (the first commit in this

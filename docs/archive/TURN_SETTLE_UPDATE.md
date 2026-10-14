@@ -1,3 +1,5 @@
+> Historical document. For current operation, see the [navigation guide](../../README.md).
+
 # Measured-turn settling update (turn-settle v2), 2026-10-06
 
 Includes the stop-sign fixes and requested 0.04% traffic-light action default.

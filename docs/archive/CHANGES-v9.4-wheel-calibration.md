@@ -1,3 +1,5 @@
+> Historical document. For current operation, see the [navigation guide](../../README.md).
+
 # v9.4: removable IR wheel calibration
 
 Built on v9.3, retaining Ryan's September 23 vision update, the v9.2 motor-reversal
@@ -23,7 +25,7 @@ one removable FC-51 probe on the confirmed spare **J8 / BCM20** connector.
   refused. Normal driving does not require the probe after it is unplugged with
   power off.
 
-Read [WHEEL_CALIBRATION.md](WHEEL_CALIBRATION.md) for setup, exact commands,
+Read [WHEEL_CALIBRATION.md](../../WHEEL_CALIBRATION.md) for setup, exact commands,
 measurement bounds, troubleshooting, research references and the limits of a
 single-reference unloaded calibration. No physical wheel RPM, connector voltage
 or floor performance has been verified in this delivery. Software verification

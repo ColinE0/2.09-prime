@@ -1,3 +1,5 @@
+> Historical document. For current operation, see the [navigation guide](../../README.md).
+
 # v9.3: Ryan's September 23 vision update
 
 Built on v9.2 with Ryan's `rr` branch pinned at
@@ -36,4 +38,4 @@ v9.3 profiles take precedence; old files are copied, never modified.
 No source was pushed to GitHub. Earlier ZIPs and local packages are preserved.
 Testing is offline with simulated camera/GPIO/I2C and synthetic images, not a
 physical robot or Pi camera run. See TEST_RESULTS.txt, VERIFICATION.json and
-[ryan_vision/SOURCE.md](ryan_vision/SOURCE.md) for verification and exact adaptations.
+[ryan_vision/SOURCE.md](../../ryan_vision/SOURCE.md) for verification and exact adaptations.

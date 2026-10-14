@@ -1,3 +1,5 @@
+> Historical document. For current operation, see the [navigation guide](../../README.md).
+
 # Proposed edits after existing-mode hardening
 
 These are design proposals, not added modes or changed operating policy. Colin's

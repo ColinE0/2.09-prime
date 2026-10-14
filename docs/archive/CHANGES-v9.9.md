@@ -1,3 +1,5 @@
+> Historical document. For current operation, see the [navigation guide](../../README.md).
+
 # v9.9 changes (2026-10-05)
 
 v9.9 builds on v9.5 with GO and IV kept through IC. It is numbered after Kaleb's v9.8 (delivered 2026-10-05 as `MPU6050_Motor_Test_v9_8.zip`,

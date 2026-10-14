@@ -1,3 +1,5 @@
+> Historical document. For current operation, see the [navigation guide](../../README.md).
+
 # Stop-sign update to the hardened v9.9 copy
 
 2026-10-06. Colin reports RV shows no stop-sign detection in the hardened v9.9

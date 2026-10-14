@@ -1,3 +1,5 @@
+> Historical document. For current operation, see the [navigation guide](../../README.md).
+
 # v9.5 changes (2026-09-24)
 
 v9.5 merges two separate v9.4 releases that both started from `MPU6050_Motor_Test_v9_3.zip`:

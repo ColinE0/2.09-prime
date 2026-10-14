@@ -1,16 +1,10 @@
-# ToF distance display and obstacle toggle (included in v7)
+# ToF setup and obstacle protection
 
-V5 had no ToF integration. V6 adds the **VL53L0X** identified in the older local project, on **I2C bus 1, address 0x29**. It is intended to face forward. The previous test packages and GitHub repositories are unchanged.
+The forward-facing VL53L0X uses I2C bus 1, address 0x29. TT enables its obstacle responses for FC and CG.
 
 ## Terminal setup
 
-Transfer the complete `MPU6050_Motor_Test_v8_500rpm.zip` to the Pi, then:
-
-```bash
-cd ~
-unzip MPU6050_Motor_Test_v8_500rpm.zip
-cd MPU6050_Motor_Test_v8_500rpm
-```
+Run the following from the navigation checkout containing `main.py` and `requirements-tof.txt`.
 
 If you already have a virtual environment that runs the motor/camera tests, activate it and install the new dependencies there:
 
@@ -28,7 +22,7 @@ python3 -m venv --system-site-packages ~/robot-test-env
 python3 main.py
 ```
 
-Use that last command from this folder on later runs. No desktop, screen preview, or mouse is needed. The old `VL53L0X` C binding does not replace these new dependencies; v6 uses the Adafruit driver with an explicit measurement-status check. Other menu modes remain usable without installing the ToF dependencies.
+Use that last command from this folder on later runs. No desktop, screen preview, or mouse is needed. The old `VL53L0X` C binding does not replace these new dependencies; this program uses the Adafruit driver with an explicit measurement-status check. Other menu modes remain usable without installing the ToF dependencies.
 
 I2C must be enabled, as for your IMU/battery tests. The sensor address differs from the MPU-6050 (0x68) and INA219 (0x40). This package opens only the configured address, does not scan the bus, and does not assign XSHUT pins or change the sensor address. It supports one VL53L0X. Stop any other program using that sensor before testing.
 
@@ -42,7 +36,7 @@ TT applies **to FC and CG**. Manual motor modes, F/FA/C, IMU tests, RV, IRC and 
 
 ## Obstacle behavior
 
-Distances are measured from the sensor, not the front bumper. Starting values are taken from the earlier project's range configuration:
+Distances are measured from the sensor, not the front bumper. Current defaults are shown below; saved settings override them:
 
 | Distance/state | FC/CG response when TT is ON |
 |---|---|
@@ -62,7 +56,7 @@ Camera and ToF decisions are both checked during holds. Removing an obstacle can
 
 1. Select **TOF** with the robot stationary and wheels off. Move a flat target between roughly 8, 9 and 12 cm from the sensor and compare the displayed distance with a ruler. Check the proposed hold/slow/clear responses. A raw hardware status of **11** is the accepted range-complete status.
 2. Check that the forward-facing sensor sees the obstacle rather than the floor, bumper or sensor cover. Observe the real lane props and other robot surfaces: dark/glossy targets, strong ambient light and mounting affect usable readings.
-3. Return with **s**, select **TT**, then try **FC** in a clear test area. The menu must say ToF obstacles for FC: ON. Add **VT** when ready to test both sensors together.
+3. Return with **s**, select **TT**, then try **FC** in a clear test area. The menu must say ToF obstacle responses for FC and CG: ON. Add **VT** when ready to test both sensors together.
 
 An open scene with no usable reflection can produce **unavailable** and hold/end FC. This conservative test does not equate “no return” with “clear.” TOF keeps its motors-off display open for invalid targets so you can diagnose them. Do not change the invalid-result rule simply to make the robot move; first check range, mounting and targets.
 

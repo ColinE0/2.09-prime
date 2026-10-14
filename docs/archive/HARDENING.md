@@ -1,3 +1,5 @@
+> Historical document. For current operation, see the [navigation guide](../../README.md).
+
 # v9.9 local hardening, 2026-10-06
 
 This is a separate, runnable copy of the existing bench. Colin's scope is to fix
