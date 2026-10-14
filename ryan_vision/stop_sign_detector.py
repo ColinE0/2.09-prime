@@ -165,7 +165,10 @@ def looks_like_red_light(hsv, red_mask):
     if roi_area <= 0:
         return False
 
-    red_values = hsv[:, :, 2][red_mask > 0]
+    # Closing fills lettering/border gaps for shape detection. Those white
+    # pixels must not contribute to red brightness or center-glow measurements.
+    red_pixels = (red_mask > 0) & (hsv[:, :, 1] >= 120)
+    red_values = hsv[:, :, 2][red_pixels]
 
     if red_values.size == 0:
         return False
@@ -262,7 +265,6 @@ def looks_like_red_light(hsv, red_mask):
         <= 1.0
     )
 
-    red_pixels = red_mask > 0
 
     inner_pixels = (
         red_pixels
@@ -358,8 +360,10 @@ def looks_like_red_light(hsv, red_mask):
 
         or
 
-        white_core_ratio
-        >= RED_LIGHT_STRONG_WHITE_CORE_RATIO
+        # White lettering/borders alone do not make a printed sign a lamp.
+        # Require bright red pixels too; preserve the other glow checks.
+        (white_core_ratio >= RED_LIGHT_STRONG_WHITE_CORE_RATIO
+         and peak_value >= RED_LIGHT_PEAK_VALUE)
     )
 
     return (
@@ -714,10 +718,11 @@ def find_best_octagon(
 # Main stop-sign detector
 # ============================================================
 
-def detect_stop_sign(frame):
-    """
-    Detect the strongest valid stop sign
-    in the right-side ROI.
+def detect_stop_sign(frame, diagnostics=None):
+    """Detect the strongest valid stop sign anywhere in the rotated frame.
+
+    Optional diagnostics records the actual first rejection for each red contour.
+    Used only by motors-off RVD; normal driving does not collect these records.
     """
 
     height, width = frame.shape[:2]
@@ -726,21 +731,10 @@ def detect_stop_sign(frame):
         width * height
     )
 
-    # Process only right half of image.
-    x_start = int(
-        width * 0.50
-    )
-
-    x_end = width
-
-    # Original vertical ROI.
-    y_start = int(
-        height * 0.05
-    )
-
-    y_end = int(
-        height * 0.80
-    )
+    # A sign can enter from either side or low in the image on a turn.
+    # Keep size, color, geometry and lamp rejection gates across the whole frame.
+    x_start, x_end = 0, width
+    y_start, y_end = 0, height
 
     roi_frame = frame[
         y_start:y_end,
@@ -774,6 +768,14 @@ def detect_stop_sign(frame):
     best_detection = None
     best_score = 0.0
 
+    def note(contour, reason):
+        if diagnostics is not None:
+            diagnostics.append({
+                "box": tuple(int(v) for v in cv2.boundingRect(contour)),
+                "area_frac": float(cv2.contourArea(contour) / frame_area),
+                "reason": reason,
+            })
+
     for contour in contours:
 
         area = cv2.contourArea(
@@ -781,6 +783,7 @@ def detect_stop_sign(frame):
         )
 
         if area <= 0:
+            note(contour, "rejected: zero contour area")
             continue
 
         area_ratio = (
@@ -793,6 +796,7 @@ def detect_stop_sign(frame):
             <= area_ratio
             <= STOP_MAX_AREA
         ):
+            note(contour, "rejected: red contour area outside 0.12%-15% of frame")
             continue
 
         x, y, box_w, box_h = (
@@ -805,6 +809,7 @@ def detect_stop_sign(frame):
             box_w <= 0
             or box_h <= 0
         ):
+            note(contour, "rejected: empty bounding box")
             continue
 
         aspect_ratio = (
@@ -817,6 +822,7 @@ def detect_stop_sign(frame):
             <= aspect_ratio
             <= STOP_MAX_ASPECT
         ):
+            note(contour, "rejected: width/height outside 0.70-1.40")
             continue
 
         box_area = (
@@ -824,6 +830,7 @@ def detect_stop_sign(frame):
         )
 
         if box_area <= 0:
+            note(contour, "rejected: empty bounding-box area")
             continue
 
         extent = (
@@ -831,6 +838,7 @@ def detect_stop_sign(frame):
         )
 
         if extent < MIN_EXTENT:
+            note(contour, "rejected: red contour fills less than 40% of its box")
             continue
 
         # ----------------------------------------------------
@@ -844,6 +852,7 @@ def detect_stop_sign(frame):
         )
 
         if radius <= 0:
+            note(contour, "rejected: zero enclosing radius")
             continue
 
         circle_area = (
@@ -853,6 +862,7 @@ def detect_stop_sign(frame):
         )
 
         if circle_area <= 0:
+            note(contour, "rejected: zero enclosing-circle area")
             continue
 
         circle_fill = (
@@ -864,6 +874,7 @@ def detect_stop_sign(frame):
             circle_fill
             > MAX_CIRCLE_FILL
         ):
+            note(contour, "rejected: too circular")
             continue
 
         candidate_hsv = hsv[
@@ -884,6 +895,7 @@ def detect_stop_sign(frame):
             candidate_hsv,
             candidate_red_mask
         ):
+            note(contour, "rejected: red region looks illuminated/overexposed")
             continue
 
         # ----------------------------------------------------
@@ -944,12 +956,14 @@ def detect_stop_sign(frame):
         )
 
         if octagon is None:
+            note(contour, "rejected: no valid convex octagon (edges/angles/side lengths)")
             continue
 
         if (
             octagon_score
             < min_octagon_score
         ):
+            note(contour, "rejected: octagon geometry score too low")
             continue
 
         contour_area = cv2.contourArea(
@@ -961,6 +975,7 @@ def detect_stop_sign(frame):
         )
 
         if contour_area <= 0:
+            note(contour, "rejected: zero contour area after geometry check")
             continue
 
         shape_match = (
@@ -972,6 +987,7 @@ def detect_stop_sign(frame):
             shape_match
             < min_shape_match
         ):
+            note(contour, "rejected: octagon does not fit red outline closely enough")
             continue
 
         # ----------------------------------------------------
@@ -1012,6 +1028,7 @@ def detect_stop_sign(frame):
             )
         )
 
+        note(contour, "accepted geometry")
         if final_score > best_score:
 
             best_score = final_score

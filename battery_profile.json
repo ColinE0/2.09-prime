@@ -1,0 +1,23 @@
+{
+  "name": "2S Li-ion 7.4 V 2000 mAh (rough generic voltage estimate)",
+  "cells": 2,
+  "nominal_voltage": 7.4,
+  "capacity_mah": 2000,
+  "full_charge_voltage": 8.4,
+  "basis": "Provisional engineering approximation for conventional 4.2 V/cell Li-ion. Not measured for this pack; not a manufacturer-specified SOC curve. Percentage does not measure remaining mAh or runtime.",
+  "low_cell_voltage": 3.3,
+  "max_estimate_current": 0.2,
+  "voltage_percent": [
+    [3.30, 0],
+    [3.60, 10],
+    [3.70, 20],
+    [3.75, 30],
+    [3.80, 40],
+    [3.85, 50],
+    [3.90, 60],
+    [3.95, 70],
+    [4.00, 80],
+    [4.10, 90],
+    [4.20, 100]
+  ]
+}

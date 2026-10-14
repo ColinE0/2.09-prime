@@ -1,8 +1,7 @@
-from libcamera import Transform
-from picamera2 import Picamera2
+import cv2
 
-from stop_sign_detector import detect_stop_sign
-from traffic_light_detector import detect_traffic_light
+from .stop_sign_detector import detect_stop_sign
+from .traffic_light_detector import detect_traffic_light
 
 
 picam2 = None
@@ -15,42 +14,30 @@ def setup_camera():
     if picam2 is not None:
         return
 
+    from libcamera import Transform
+    from picamera2 import Picamera2
+
     picam2 = Picamera2()
 
-    # ---------------------------------------------------------
-    # CAMERA CONFIGURATION
-    # ---------------------------------------------------------
-    # IMX219:
-    #
-    # 640x480 sensor mode uses a cropped section of the sensor
-    # and therefore looks heavily zoomed in.
-    #
-    # 1640x1232 uses the FULL 3280x2464 sensor field of view.
-    #
-    # We capture from that full-FOV sensor mode but scale the
-    # output down to 640x480 so all existing vision code can
-    # continue using the same coordinates and ROIs.
-    #
-    # hflip + vflip = 180-degree rotation for upside-down camera.
-    # ---------------------------------------------------------
-
+    # Ryan rr 3194386 (2026-09-25): capture from the IMX219's full-FOV 1640x1232 mode,
+    # scaled to 640x480 so every ROI keeps its coordinates. The 640x480 sensor mode is
+    # a centre crop and looks heavily zoomed in. hflip + vflip = 180-degree rotation.
+    # Standalone entry point only; the menu opens the camera in vision_support.
     camera_config = picam2.create_video_configuration(
         main={
             "size": (640, 480),
+            # Picamera2 RGB888 is already OpenCV BGR order: no conversion after capture.
             "format": "RGB888"
         },
         sensor={
             "output_size": (1640, 1232),
             "bit_depth": 10
         },
-        transform=Transform(
-            hflip=1,
-            vflip=1
-        )
+        transform=Transform(hflip=1, vflip=1)
     )
 
     picam2.configure(camera_config)
-    picam2.start()
+    picam2.start(show_preview=False)
 
 
 def boxes_represent_same_object(box1, box2):
@@ -102,7 +89,7 @@ def boxes_represent_same_object(box1, box2):
 
 
 def get_horizontal_position(center_x, frame_width):
-    """Convert X coordinate into LEFT / CENTER / RIGHT."""
+    """Convert an X coordinate into LEFT / CENTER / RIGHT."""
 
     if center_x is None:
         return None
@@ -119,8 +106,18 @@ def get_horizontal_position(center_x, frame_width):
     return "CENTER"
 
 
+# -----------------------------------------------------------
+# WHAT NAVIGATION NEEDS TO KNOW FROM VISION
+# -----------------------------------------------------------
+
+
 def get_vision_data(frame):
-    """Run all vision detectors."""
+    """
+    Main interface between computer vision and navigation.
+
+    Runs the stop-sign and traffic-light detectors and returns
+    the detected object, center coordinates, and position.
+    """
 
     _, frame_width = frame.shape[:2]
 
@@ -129,6 +126,15 @@ def get_vision_data(frame):
 
     # ---------------------------------------------------------
     # SAME-OBJECT ARBITRATION
+    # ---------------------------------------------------------
+    # If both detectors are looking at the same physical object:
+    #
+    # STOP SIGN wins over RED_LIGHT.
+    #
+    # This prevents a real stop sign from also being reported
+    # as a red traffic light.
+    #
+    # GREEN and YELLOW are not affected.
     # ---------------------------------------------------------
 
     if stop_sign_data is not None and traffic_light_data is not None:
@@ -218,10 +224,16 @@ def get_vision_data(frame):
 
 
 def read_vision():
-    """Capture one frame and return all vision results."""
+    """
+    Capture one frame and return all vision results.
+
+    Navigation only needs to call this function.
+    """
 
     setup_camera()
 
+    # Capture directly.
+    # No RGB -> BGR conversion.
     frame = picam2.capture_array()
 
     return get_vision_data(frame)
@@ -264,22 +276,30 @@ def print_vision_data(vision_data):
 
 
 def main():
-    """Run vision continuously and print detections."""
+    """Run the vision system continuously."""
 
     setup_camera()
 
+    print("Camera started with 180-degree rotation (vflip + hflip). Running vision pipeline...")
+
     try:
+
         while True:
+
+            # Capture frame.
             frame = picam2.capture_array()
+
+            # Run detectors.
             vision_data = get_vision_data(frame)
+
+            # Print detections.
             print_vision_data(vision_data)
 
-    except KeyboardInterrupt:
-        print("\nStopping...")
-
     finally:
+
         if picam2 is not None:
             picam2.stop()
+
 
 
 if __name__ == "__main__":

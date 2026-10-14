@@ -107,13 +107,7 @@ def open_bus(number):
             from smbus import SMBus
         except ImportError as exc:
             raise IMUFault("Install python3-smbus (or smbus2 in your Python environment)") from exc
-    try:
-        return SMBus(number)
-    except FileNotFoundError as exc:
-        raise FileNotFoundError(
-            exc.errno, f"/dev/i2c-{number} not found. I2C is disabled or the bus number is wrong: "
-            "enable it with 'sudo raspi-config' > Interface Options > I2C, reboot, "
-            "then check 'ls /dev/i2c-*' and pass --bus N if needed") from exc
+    return SMBus(number)
 
 
 class IMUStream:
@@ -255,18 +249,48 @@ def calibrate_samples(samples):
     return calibration_report(samples).calibration()
 
 
+VERTICAL_MIN = 0.85  # share of gravity along the yaw axis for it to count as vertical
+
+
+def _vertical_share(calibration, axis):
+    norm = math.sqrt(sum(v * v for v in calibration.gravity))
+    return abs(calibration.gravity[axis]) / norm if norm else 0.0
+
+
 def verify_axis(calibration, angles):
     """Operator rotates chassis LEFT by hand, without tilting it."""
     axis = max(range(3), key=lambda i: abs(angles[i]))
     primary = abs(angles[axis])
     others = math.sqrt(sum(angles[i] ** 2 for i in range(3) if i != axis))
-    gravity_norm = math.sqrt(sum(v * v for v in calibration.gravity))
     if not 15 <= primary <= 180 or others > primary * 0.25:
         raise IMUFault("Rotate left by about 30-90 degrees without tilting, then press g; retry IV.")
-    if abs(calibration.gravity[axis]) / gravity_norm < 0.85:
+    if _vertical_share(calibration, axis) < VERTICAL_MIN:
         raise IMUFault("The measured rotation axis is not vertical. Retry IV without tilting the robot.")
     calibration.axis = axis
     calibration.sign = 1 if angles[axis] > 0 else -1
+
+
+def orientation_record(calibration):
+    """What a passed IV learned: the yaw axis, its sign, and which way gravity points along it."""
+    return calibration.axis, calibration.sign, calibration.gravity[calibration.axis] > 0
+
+
+def keep_orientation(calibration, record):
+    """Give a new IC the last IV's yaw axis and sign, if the IMU still sits the same way up.
+
+    The axis and sign depend only on how the IMU is mounted, so they outlast the gyro bias
+    that IC re-measures. Gravity checks the mounting: the remembered axis must still be
+    vertical and point the same way. A remounted or flipped IMU, or a tilted robot, fails
+    that check and needs a new IV. Turning the board flat on the chassis keeps the same yaw
+    axis and sign, so it is safe either way.
+    """
+    if record is None:
+        return False
+    axis, sign, up = record
+    if _vertical_share(calibration, axis) < VERTICAL_MIN or (calibration.gravity[axis] > 0) != up:
+        return False
+    calibration.axis, calibration.sign = axis, sign
+    return True
 
 
 class Heading:

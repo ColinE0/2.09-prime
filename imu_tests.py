@@ -4,7 +4,8 @@ import time
 from motion_profile import PRESET
 import motors_optimized as motor
 from imu_support import (IMUFault, IMUStream, Heading, MAX_SAMPLE_AGE,
-                         calibration_report, check_sample, verify_axis)
+                         calibration_report, check_sample, keep_orientation,
+                         orientation_record, verify_axis)
 
 # Lower initial duty for the separate IMU movement tests only.
 IMU_DRIVE_DUTY = PRESET["imu_drive_duty"]
@@ -20,8 +21,8 @@ TURN_SLOW_GAIN = PRESET["imu_turn_slow_gain"]
 TURN_TOLERANCE = 2.0
 TURN_TIMEOUT = 6.0
 TURN_STALL_TIME = 1.0
-TURN_STOP_LEAD = 0.0    # s of yaw rate anticipated before cutting power
-LOG_TIMED_TURNS = True  # gyro-measure R/L/TR/TL turns when IC and IV are current
+TURN_STOP_LEAD = 0.0    # s of yaw rate anticipated before cutting power (SET -> IMU motion)
+LOG_TIMED_TURNS = True  # gyro-measure R/L/TR/TL/course turns when IC and IV are current
 CALIBRATION_SECONDS = 2.0
 CALIBRATION_SETTLE_SECONDS = 2.0
 ORIENTATION_TIMEOUT = 15.0
@@ -37,9 +38,13 @@ class Session:
         self.stream_factory = stream_factory
         self.stream = None
         self.calibration = None
+        # The last passed IV (axis, sign, gravity direction). A new IC keeps it while the
+        # IMU sits the same way up; BOT, a settings reload or a restart forget it.
+        self.orientation = None
 
     def close(self):
         self.calibration = None
+        self.orientation = None
         if self.stream is not None:
             if self.stream.close() is False:
                 return False  # Retain ownership: never start a second I2C worker.
@@ -125,14 +130,25 @@ class IMUTests(motor.Controller):
         self.log(report.summary())
         for warning in report.warnings():
             self.log(warning)
-        self.session.calibration = report.calibration()
-        bias = self.session.calibration.bias
-        self.log(f"Gyro calibration passed. Bias X/Y/Z: {bias[0]:+.3f}/{bias[1]:+.3f}/{bias[2]:+.3f} deg/s. "
-                 "Run IV to verify orientation.")
+        calibration = report.calibration()
+        kept = keep_orientation(calibration, self.session.orientation)
+        self.session.calibration = calibration
+        bias = calibration.bias
+        passed = f"Gyro calibration passed. Bias X/Y/Z: {bias[0]:+.3f}/{bias[1]:+.3f}/{bias[2]:+.3f} deg/s. "
+        if kept:
+            self.log(passed + f"Orientation kept from the last IV: sensor {'XYZ'[calibration.axis]}, "
+                     f"sign {calibration.sign:+d}. Ready.")
+        elif self.session.orientation is not None:
+            self.session.orientation = None
+            self.log(passed + "The IMU no longer sits the way it did at the last IV (remounted, flipped "
+                     "or tilted), so that IV is dropped. Run IV again.")
+        else:
+            self.log(passed + "Run IV to verify orientation.")
 
     def verify_orientation(self):
         calibration = self.session.require_calibration(self.clock.monotonic(), orientation=False)
         calibration.axis = None
+        self.session.orientation = None  # a new IV replaces the old; a failed one leaves none
         self.motors.stop(brake=False)  # Allow hand rotation; never power wheels in IV.
         previous = self.session.connect(self)
         angles = [0.0, 0.0, 0.0]
@@ -154,6 +170,7 @@ class IMUTests(motor.Controller):
                 previous = sample
             if "g" in keys:
                 verify_axis(calibration, angles)
+                self.session.orientation = orientation_record(calibration)
                 self.log(f"Orientation verified: sensor {'XYZ'[calibration.axis]}, "
                          f"sign {calibration.sign:+d}; positive heading means LEFT.")
                 return
@@ -203,6 +220,9 @@ class IMUTests(motor.Controller):
             now = self.clock.monotonic()
             self.poll()
             tracker.update(self.session.sample(now))
+            if self.motors.read_ir()[2] == 0:
+                self.log("Front line: heading-hold test stopped")
+                return
             if abs(tracker.angle) > MAX_HEADING_ERROR:
                 raise IMUFault("Heading departed by more than 12 degrees; check orientation and tuning")
             targets = forward_targets(tracker.angle, tracker.rate)
@@ -242,7 +262,7 @@ class IMUTests(motor.Controller):
             duty = max(TURN_MIN_DUTY, min(TURN_MAX_DUTY, (TURN_ANGLE - progress) * TURN_SLOW_GAIN))
             scale = duty / max(motor.LEFT_SPEED, motor.RIGHT_SPEED)
             targets = (motor.LEFT_SPEED * scale, motor.RIGHT_SPEED * scale) * 2
-            self.motors.slew(targets, motor.RAMP_RATE, now - previous)
+            self.motors.slew_turn(targets, now - previous)
             previous = now
             self.tick_sleep(now)
         self.motors.stop()
@@ -276,7 +296,7 @@ class IMUTests(motor.Controller):
 
 
 class TurnYawLogger:
-    """Read-only gyro measurement of timed turns: R, L, TR and TL.
+    """Read-only gyro measurement of timed turns: R, L, TR, TL and course turns.
 
     Never commands a wheel and never raises into the motor loop: any IMU problem
     ends logging for the rest of the command with one message. Needs a current

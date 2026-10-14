@@ -1,0 +1,4 @@
+# Install in the same Pi Python environment used for motor_imu_test.py.
+# The raw-status adapter is reviewed against these driver versions.
+adafruit-circuitpython-vl53l0x==3.6.19
+adafruit-extended-bus==1.0.2
